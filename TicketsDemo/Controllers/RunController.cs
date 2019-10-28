@@ -16,20 +16,21 @@ namespace TicketsDemo.Controllers
         private IReservationRepository _reservationRepo;
         private IReservationService _resServ;
         private ITicketService _tickServ;
-        private IPriceCalculationStrategy _priceCalc;
+        //private IPriceCalculationStrategy _priceCalc;
+        private ICalculationFactory _calcFact;
         private ITrainRepository _trainRepo;
 
         public RunController(ITicketRepository tick, IRunRepository run, 
             IReservationService resServ,
             ITicketService tickServ,
-            IPriceCalculationStrategy priceCalcStrategy,
+            ICalculationFactory calcFact,
             IReservationRepository reservationRepo,
             ITrainRepository trainRepo) {
             _tickRepo = tick;
             _runRepo = run;
             _resServ = resServ;
             _tickServ = tickServ;
-            _priceCalc = priceCalcStrategy;
+            _calcFact = calcFact;
             _reservationRepo = reservationRepo;
             _trainRepo = trainRepo;
         }
@@ -52,12 +53,13 @@ namespace TicketsDemo.Controllers
             var place = _runRepo.GetPlaceInRun(placeId);
 
             var reservation = _resServ.Reserve(place);
+            var calcStrat = _calcFact.create(true);
 
             var model = new ReservationViewModel()
             {
                 Reservation = reservation,
                 PlaceInRun = place,
-                PriceComponents = _priceCalc.CalculatePrice(place),
+                PriceComponents = calcStrat.CalculatePrice(place),
                 Date = place.Run.Date,
                 Train = _trainRepo.GetTrainDetails(place.Run.TrainId),
             };
@@ -68,14 +70,15 @@ namespace TicketsDemo.Controllers
         [HttpPost]
         public ActionResult CreateTicket(CreateTicketModel model)
         {
-            var tick = _tickServ.CreateTicket(model.ReservationId,model.FirstName,model.LastName);
+            var calcStratFactory = _calcFact.create(model.Beverages_Domestics);
+            var tick = _tickServ.CreateTicket(model.ReservationId,model.FirstName,model.LastName, calcStratFactory);
             return RedirectToAction("Ticket", new { id = tick.Id });
         }
 
         public ActionResult Ticket(int id)
         {
             var ticket = _tickRepo.Get(id);
-            var reservation = _reservationRepo.Get(ticket.Id);
+            var reservation = _reservationRepo.Get(ticket.ReservationId);
             var placeInRun = _runRepo.GetPlaceInRun(reservation.PlaceInRunId);
 
             var ticketWM = new TicketViewModel();

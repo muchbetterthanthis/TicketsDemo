@@ -65,17 +65,30 @@ namespace TicketsDemo.App_Start
         private static void RegisterServices(IKernel kernel)
         {
             kernel.Bind<ITicketRepository>().To<TicketRepository>();
-            kernel.Bind<ITrainRepository>().To<TrainRepository>();
+            kernel.Bind<ITrainRepository>().To<Mongo.Repositories.MongoTrainRepository>();
+            //kernel.Bind<ITrainRepository>().To<TrainRepository>();
 
             kernel.Bind<IRunRepository>().To<RunRepository>();
             kernel.Bind<IReservationRepository>().To<ReservationRepository>();
 
             kernel.Bind<ISchedule>().To<Schedule>();
-            kernel.Bind<ITicketService>().To<TicketService>();
+            // kernel.Bind<ITicketService>().To<TicketService>();
+            kernel.Bind<ITicketService>().ToMethod((ctx) =>
+            {
+                return new TicketServiceLoggerDecorator(ctx.Kernel.Get<TicketService>(), ctx.Kernel.Get<ILogger>());
+            });
             kernel.Bind<IReservationService>().To<ReservationService>();
 
             //todo factory
-            kernel.Bind<IPriceCalculationStrategy>().To<DefaultPriceCalculationStrategy>();
+
+            kernel.Bind<Mongo.Interfaces.ICollectionFactory>().To<TicketsDemo.Mongo.Implementations.CollectionFactory>();
+            kernel.Bind<Mongo.Interfaces.IConnectionStringProvider>().To<TicketsDemo.Mongo.Implementations.ConnectionStringProvider>();
+            kernel.Bind<Mongo.Interfaces.ICollectionCreator>().To<TicketsDemo.Mongo.Implementations.CollectionCreator>();
+
+            kernel.Bind<ICalculationFactory>().To<CalculationFactory>();
+
+            //kernel.Bind<IPriceCalculationStrategy>().To<DefaultPriceCalculationStrategy>();
+
             kernel.Bind<ILogger>().ToMethod(x =>
                 new FileLogger(HttpContext.Current.Server.MapPath("~/App_Data")));
         }        
