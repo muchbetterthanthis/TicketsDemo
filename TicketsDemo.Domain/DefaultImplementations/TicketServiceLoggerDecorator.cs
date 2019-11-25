@@ -21,6 +21,11 @@ namespace TicketsDemo.Domain.DefaultImplementations
 
         public Ticket CreateTicket(int reservationId, string fName, string lName, IPriceCalculationStrategy priceCalcStrat)
         {
+            LogSeverity logSev = LogSeverity.Info;
+            string logMessage = "New ticket has been bought. Reservation ID: " + reservationId;
+
+            _logger.Log(logMessage, logSev);
+
             return _ticketService.CreateTicket(reservationId, fName, lName, priceCalcStrat);
         }
 
